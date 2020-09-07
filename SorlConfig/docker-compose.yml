@@ -1,0 +1,13 @@
+version: '3'
+services:
+  solr:
+    image: 'solr:8'
+    tty: true
+    ports:
+      - '8984:8983'
+    environment: []
+    volumes:
+      - '.\Volume:/var/solr'
+    command:
+      - solr-precreate
+      - animeodcinki
