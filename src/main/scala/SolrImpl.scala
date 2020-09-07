@@ -23,12 +23,16 @@ class SolrImpl( val serviceName: String ) {
         } yield exist
 
         val exist = Await.result( existFuture, Duration.Inf )
-        val array = exist.fold( None.asInstanceOf[ Array[ AnyRef ] ] )( obj => obj.getFieldValues( "data" ).toArray )
 
-        if ( array.isEmpty ) {
+        if(exist.isEmpty) {
             None
         } else {
-            Some( gson.fromJson( array.head.toString, classOf[ AnimeSorl ] ) )
+            val array = exist.get.getFieldValues( "data" ).toArray
+            if ( array.isEmpty ) {
+                None
+            } else {
+                Some( gson.fromJson( array.head.toString, classOf[ AnimeSorl ] ) )
+            }
         }
     }
 
