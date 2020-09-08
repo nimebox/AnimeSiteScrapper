@@ -14,8 +14,8 @@ object Utils {
             bareDone.append( icon )
         }
         val bareRemain = bare.substring( remainProcent, bare.length )
-        System.out.print( "\r" + bareDone + bareRemain + " " + remainProcent * 10 + "%" )
-        if ( remain == total ) System.out.print( "\n" )
+        print( "\r" + bareDone + bareRemain + " " + remainProcent * maxBareSize + "%  " + remain + "/" + total )
+        if ( remain == total ) print( "\n" )
     }
 
     def randomTimeout(): Unit = {
