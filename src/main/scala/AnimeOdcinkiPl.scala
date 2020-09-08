@@ -9,10 +9,10 @@ import net.ruippeixotog.scalascraper.scraper.ContentExtractors.elementList
 import net.ruippeixotog.scalascraper.dsl.DSL._
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import org.apache.commons.codec.binary.Hex
-import org.jsoup.Connection
+import org.jsoup.{Connection, HttpStatusException}
 
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future}
 
 class AnimeOdcinkiPl( ) {
     implicit val context: ExecutionContextExecutorService =
@@ -31,7 +31,7 @@ class AnimeOdcinkiPl( ) {
     private val key = "s05z9Gpd=syG^7{"
 
     private val browser = new JsoupBrowser( userAgent = Const.ua ) {
-        override def requestSettings(conn: Connection): Connection = conn.timeout(60000)
+        override def requestSettings( conn: Connection ): Connection = conn.timeout( 60000 )
     }
     private val gson = new GsonBuilder().create()
     private val solrImpl = new SolrImpl( "animeodcinki" )
@@ -62,7 +62,10 @@ class AnimeOdcinkiPl( ) {
         episodes.zipWithIndex.foreach { case (ep, idx) =>
             progressPercentage( idx, episodes.length )
             Utils.randomTimeout()
-            players.addOne( Tuple2( ep, getEpisodeUrls( ep ) ) )
+            val epu = getEpisodeUrls( ep )
+            if ( !epu.isEmpty ) {
+                players.addOne( Tuple2( ep, epu ) )
+            }
         }
 
         if ( episodes.length != 0 ) {
@@ -94,35 +97,53 @@ class AnimeOdcinkiPl( ) {
     }
 
     def getEpisodes( ap: AnimePage ): Array[ AnimeEpisodePage ] = {
-        try {
-            val animePage = browser.get( ap.url )
-            ( animePage >> elementList( ".view-lista-odcink-w div ul li" ) ).map { item =>
-                val urlItem = item >> element( "a" )
-                AnimeEpisodePage( urlItem >> text, urlItem >> attr( "href" ) )
-            }.toArray
-        } catch {
-            case e: Exception =>
-                e.printStackTrace()
-                println(s"Retry getting episodes of ${ap.title}")
-                getEpisodes(ap)
+        var ret: Option[ Array[ AnimeEpisodePage ] ] = None
+
+        while ( ret.isEmpty ) {
+            try {
+                val animePage = browser.get( ap.url )
+                ret = Some( ( animePage >> elementList( ".view-lista-odcink-w div ul li" ) ).map { item =>
+                    val urlItem = item >> element( "a" )
+                    val url = urlItem >> attr( "href" )
+                    AnimeEpisodePage( urlItem >> text, url )
+                }.toArray )
+            } catch {
+                case e: Exception =>
+                    e.printStackTrace()
+                    println( s"Retry getting episodes of ${ap.title}" )
+            }
+            Utils.randomTimeout()
         }
+        ret.get
     }
 
     def getEpisodeUrls( aep: AnimeEpisodePage ): Array[ AnimeEpisodePlayer ] = {
-        try {
-            val animeEpisodePage = browser.get( aep.url )
-            ( animeEpisodePage >> elementList( "#video-player-control div" ) ).map { item =>
-                val playerName = item >> text
-                val dataHash = item >> attr( "data-hash" )
-                val dataHashObj = gson.fromJson( dataHash, classOf[ DataHash ] )
-                val url = AESHelperJava.decrypt( key, Hex.decodeHex( dataHashObj.v ), dataHashObj.a )
-                AnimeEpisodePlayer( playerName = playerName, url = url.replace( """\/""", "/" ).replace( "\"", "" ) )
-            }.toArray
-        } catch {
-            case e: Exception =>
-                e.printStackTrace()
-                println(s"Retry getting players of ${aep.title}")
-                getEpisodeUrls(aep)
+        var ret: Option[ Array[ AnimeEpisodePlayer ] ] = None
+        var canRetry = true
+
+        while ( canRetry ) {
+            try {
+                val animeEpisodePage = browser.get( aep.url )
+                ret = Some( ( animeEpisodePage >> elementList( "#video-player-control div" ) ).map { item =>
+                    val playerName = item >> text
+                    val dataHash = item >> attr( "data-hash" )
+                    val dataHashObj = gson.fromJson( dataHash, classOf[ DataHash ] )
+                    val url = AESHelperJava.decrypt( key, Hex.decodeHex( dataHashObj.v ), dataHashObj.a )
+                    AnimeEpisodePlayer( playerName = playerName, url = url.replace( """\/""", "/" ).replace( "\"", "" ) )
+                }.toArray )
+                canRetry = false
+            } catch {
+                case e: HttpStatusException =>
+                    if ( e.getStatusCode == 404 ) {
+                        println( s"Page: ${aep.title} not exist. Skipping." )
+                        canRetry = false
+                    }
+                case e: Exception =>
+                    e.printStackTrace()
+                    println( s"Retry getting players of ${aep.title}" )
+            }
+            Utils.randomTimeout()
         }
+        ret.fold( Array[ AnimeEpisodePlayer ]() )( e => e )
     }
 }
