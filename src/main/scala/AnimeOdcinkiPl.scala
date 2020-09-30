@@ -128,7 +128,7 @@ class AnimeOdcinkiPl( ) {
                     val playerName = item >> text
                     val dataHash = item >> attr( "data-hash" )
                     val dataHashObj = gson.fromJson( dataHash, classOf[ DataHash ] )
-                    val url = AESHelperJava.decrypt( key, Hex.decodeHex( dataHashObj.v ), dataHashObj.a )
+                    val url = AESHelper.decrypt( key, Hex.decodeHex( dataHashObj.v ), dataHashObj.a )
                     AnimeEpisodePlayer( playerName = playerName, url = url.replace( """\/""", "/" ).replace( "\"", "" ) )
                 }.toArray )
                 canRetry = false

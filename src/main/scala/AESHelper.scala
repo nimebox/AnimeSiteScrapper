@@ -17,7 +17,7 @@ object AESHelper {
 
     def encrypt( password: String, plainText: String ): String = {
         val saltBytes = generateSalt( 8 )
-        val key = new Array[ Byte ]( IV_SIZE / 8 )
+        val key = new Array[ Byte ]( KEY_SIZE / 8 )
         val iv = new Array[ Byte ]( IV_SIZE / 8 )
 
         EvpKDF( password.getBytes( CHARSET_TYPE ), KEY_SIZE, IV_SIZE, saltBytes, key, iv )
@@ -41,7 +41,7 @@ object AESHelper {
 
     def decrypt( password: String, salt: Array[ Byte ], cipherText: String ): String = {
         val ctBytes = new Base64().decode( cipherText.getBytes( CHARSET_TYPE ) )
-        val key = new Array[ Byte ]( IV_SIZE / 8 )
+        val key = new Array[ Byte ]( KEY_SIZE / 8 )
         val iv = new Array[ Byte ]( IV_SIZE / 8 )
 
         EvpKDF( password.getBytes( CHARSET_TYPE ), KEY_SIZE, IV_SIZE, salt, key, iv )
@@ -67,8 +67,6 @@ object AESHelper {
         var block: Array[ Byte ] = null
         val hasher = MessageDigest.getInstance( hashAlgorithm )
 
-        System.out.println( derivedBytes.length )
-
         while ( {
             numberOfDerivedWords < targetKeySize
         } ) {
@@ -85,8 +83,8 @@ object AESHelper {
             numberOfDerivedWords += block.length / 4
         }
 
-        System.arraycopy( derivedBytes, 0, resultKey, 0, targetKeySize * 4 )
-        System.arraycopy( derivedBytes, keySize * 4, resultIv, 0, targetKeySize * 4 )
+        System.arraycopy( derivedBytes, 0, resultKey, 0, keySizeNew * 4 )
+        System.arraycopy( derivedBytes, keySizeNew * 4, resultIv, 0, ivSizeNew * 4 )
 
         derivedBytes // key + iv
     }
