@@ -7,11 +7,11 @@ class AnimeDesuTest extends FunSuite {
 
         val animeList = service.getAnimeList
 
-        animeList.foreach{ it =>
-            println(s"${it.title} -> ${it.url}")
+        animeList.foreach { it =>
+            println( s"${it.title} -> ${it.url}" )
         }
 
-        assert(animeList.length > 0)
+        assert( animeList.length > 0 )
     }
 
     test( "GetEpisodeList" ) {
@@ -19,13 +19,28 @@ class AnimeDesuTest extends FunSuite {
 
         val testPage = service.AnimePage( "B-gata H-kei", "https://animedesu.pl/anime/b-gata-h-kei/" )
 
-        val episodeList = service.getAnimeEpisodes(testPage)._1
+        val episodeList = service.getAnimeEpisodes( testPage )._1
 
-        episodeList.foreach{ it =>
-            println(s"${it.title} -> ${it.url}")
+        episodeList.foreach { it =>
+            println( s"${it.title} -> ${it.url}" )
         }
 
-        assert(episodeList.length == 12)
+        assert( episodeList.length == 12 )
+    }
+
+    test( "GetEpisodePlayersList" ) {
+        val service = new AnimeDesuPL()
+
+        val testPage = service.AnimeEpisode( "B-gata H-kei Odcinek 1", "https://animedesu.pl/b-gata-h-kei-odcinek-1/" )
+
+        val playersList = service.getEpisodePlayers( testPage )
+
+        playersList.foreach { it =>
+            println( s"${it.title} -> ${it.url}" )
+        }
+
+        assert( playersList.length == 4 )
+        assert( playersList.head.url == "https://drive.google.com/file/d/1_CEbJZkoae8zzX9mJNcH2uOet9HuzwkF/preview" )
     }
 
 }
