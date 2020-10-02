@@ -2,25 +2,19 @@ import java.nio.charset.StandardCharsets
 import java.util.Base64
 import java.util.concurrent.Executors
 
-import com.google.gson.GsonBuilder
+import Models.{AnimePage, AnimePageEpisode, AnimePagePlayer}
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import net.ruippeixotog.scalascraper.scraper.ContentExtractors.elementList
 import net.ruippeixotog.scalascraper.dsl.DSL._
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import sttp.client._
-import org.jsoup.{Connection, HttpStatusException}
+import org.jsoup.Connection
 import sttp.client.{HttpURLConnectionBackend, Identity, NothingT, SttpBackend}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
 
 class AnimeDesuPL( ) {
-
-    case class AnimePage( title: String, url: String, imageB64: Option[ String ] = None )
-
-    case class AnimeEpisode( title: String, url: String )
-
-    case class AnimePlayer( title: String, url: String )
 
     implicit val context: ExecutionContextExecutorService =
         ExecutionContext.fromExecutorService( Executors.newSingleThreadExecutor() )
@@ -31,10 +25,23 @@ class AnimeDesuPL( ) {
 
     implicit val backend: SttpBackend[ Identity, Nothing, NothingT ] = HttpURLConnectionBackend()
 
-
     browser.setCookie( "animedesu.pl", "age_gate", "18" )
 
-    private val gson = new GsonBuilder().create()
+    private val solrImpl = new SolrImpl( "ad" )
+
+    def updateAnimeDB( ): Unit = {
+        getAnimeList.foreach { anime =>
+            val episodesAndImage = getAnimeEpisodes( anime )
+            val animePageObj = anime.copy( imageB64 = episodesAndImage._2 )
+            Utils.randomTimeout()
+            val episodes = episodesAndImage._1.map { epb =>
+                val newObj = epb.copy( players = getEpisodePlayers( epb ) )
+                Utils.randomTimeout()
+                newObj
+            }.toSet
+            solrImpl.updateAnime( animePageObj, episodes )
+        }
+    }
 
     def getAnimeList: Array[ AnimePage ] = {
         val ret = ArrayBuffer[ AnimePage ]()
@@ -48,14 +55,14 @@ class AnimeDesuPL( ) {
         ret.toArray
     }
 
-    def getAnimeEpisodes( animePage: AnimePage ): (Array[ AnimeEpisode ], Option[ String ]) = {
-        val ret = ArrayBuffer[ AnimeEpisode ]()
+    def getAnimeEpisodes( animePage: AnimePage ): (Array[ AnimePageEpisode ], Option[ String ]) = {
+        val ret = ArrayBuffer[ AnimePageEpisode ]()
         println( s"Getting episodes for ${animePage.title}" )
 
         val episodeList = browser.get( animePage.url )
 
         ret.addAll( ( episodeList >> elementList( ".epcheck .eplister ul li a" ) ).map { el =>
-            AnimeEpisode( el >> element( ".epl-title" ) >> text, el >> attr( "href" ) )
+            AnimePageEpisode( el >> element( ".epl-title" ) >> text, el >> attr( "href" ), Set.empty )
         } )
 
         val imageUrl = episodeList >> element( ".thumbook .thumb img" ) >> attr( "src" )
@@ -64,8 +71,8 @@ class AnimeDesuPL( ) {
         (ret.toArray, image)
     }
 
-    def getEpisodePlayers( animeEpisode: AnimeEpisode ): Array[ AnimePlayer ] = {
-        val ret = ArrayBuffer[ AnimePlayer ]()
+    def getEpisodePlayers( animeEpisode: AnimePageEpisode ): Set[ AnimePagePlayer ] = {
+        val ret = scala.collection.mutable.Set[ AnimePagePlayer ]()
         println( s"Getting players for ${animeEpisode.title}" )
 
         val playersList = browser.get( animeEpisode.url )
@@ -77,13 +84,13 @@ class AnimeDesuPL( ) {
             if ( !hash.isBlank ) {
                 val decodedIframeString = new String( Base64.getDecoder.decode( hash ), StandardCharsets.UTF_8 )
 
-                val url = browser.parseString( decodedIframeString ).body >> element("iframe") >> attr( "src" )
+                val url = browser.parseString( decodedIframeString ).body >> element( "iframe" ) >> attr( "src" )
 
-                ret.addOne( AnimePlayer( title, url ) )
+                ret.addOne( AnimePagePlayer( title, url ) )
             }
         }
 
-        ret.toArray
+        ret.toSet
     }
 
     def downloadImage( url: String, refererUrl: String ): Option[ String ] = {
