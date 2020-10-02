@@ -19,6 +19,6 @@ object Utils {
     }
 
     def randomTimeout(): Unit = {
-        Thread.sleep( Random.between(5000, 15000) )
+        Thread.sleep( Random.between(3000, 12000) )
     }
 }
