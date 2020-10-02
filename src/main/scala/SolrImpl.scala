@@ -3,7 +3,7 @@ import java.time.format.DateTimeFormatter
 import java.util.UUID
 import java.util.concurrent.Executors
 
-import Models.{Anime, AnimeEpisode, AnimePage, AnimePageEpisode, AnimePlayer, AnimeSorl}
+import Models._
 import io.ino.solrs.AsyncSolrClient
 import io.ino.solrs.future.ScalaFutureFactory.Implicit
 import org.apache.solr.client.solrj.SolrQuery
@@ -74,7 +74,7 @@ class SolrImpl( val serviceName: String ) {
                 playerDoc.addField( "id", pl.id.toString )
                 playerDoc.addField( "animeId", anime.id.toString )
                 playerDoc.addField( "episodeId", ep.id.toString )
-                playerDoc.addField( "type", EntryType.EPISODE.id )
+                playerDoc.addField( "type", EntryType.PLAYER.id )
                 playerDoc.addField( "title", pl.title )
                 playerDoc.addField( "url", pl.url )
                 playerDoc.addField( "updated", ZonedDateTime.now().format( DateTimeFormatter.ISO_INSTANT ) )
@@ -111,8 +111,10 @@ class SolrImpl( val serviceName: String ) {
     }
 
     def getDataByUrl( url: String ): Option[ Anime ] = {
+        val solrUrl = "https\\:" + url.replaceAll( "https:", "" )
+
         val animeEntryResult = Await.result( solrService.query(
-            new SolrQuery( s"sourceUrl:*$url AND type:${EntryType.ANIME.id}" ).setRows( 1 )
+            new SolrQuery( s"url:*$solrUrl AND type:${EntryType.ANIME.id}" ).setRows( 1 )
         ), Duration.Inf ).getResults
 
         if ( animeEntryResult.isEmpty ) {
@@ -163,5 +165,4 @@ class SolrImpl( val serviceName: String ) {
 
         None
     }
-
 }
