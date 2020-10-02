@@ -1,4 +1,5 @@
 
+import java.util.UUID
 import java.util.concurrent.Executors
 
 import Models.{AnimeEpisodePlayerSorl, AnimeEpisodeSorl, AnimeSorl}
@@ -20,9 +21,7 @@ class AnimeOdcinkiPl( ) {
 
     case class DataHash( a: String, b: String, v: String )
 
-    case class AnimePage( title: String, url: String ) {
-        def id: String = title.trim.replaceAll( "\\s", "" )
-    }
+    case class AnimePage( title: String, url: String, imageUrl: Option[ String ] = None )
 
     case class AnimeEpisodePage( title: String, url: String )
 
@@ -34,29 +33,38 @@ class AnimeOdcinkiPl( ) {
         override def requestSettings( conn: Connection ): Connection = conn.timeout( 60000 )
     }
     private val gson = new GsonBuilder().create()
-    private val solrImpl = new SolrImpl( "animeodcinki" )
+    private val solrImpl = new SolrOldImpl( "animeodcinki" )
 
     def downloadDBAndSave( ): Unit = {
         getList.foreach { ap =>
             println( s"Processing: ${ap.title}" )
-            val eps = getEpisodes( ap )
 
-            val exist = solrImpl.getDataById( ap.id )
+            val t0 = System.nanoTime()
+            val eps = getEpisodes( ap )
+            val t1 = System.nanoTime()
+            println( s"Episode getted in: ${( t1 - t0 ) / 1000000}ms" )
+
+            val sorlCheckUrl = "https\\:" + ap.url.replaceAll( "https:", "" )
+
+            val exist = solrImpl.getDataByUrl( sorlCheckUrl )
+
+            val apWithImage = ap.copy( imageUrl = Some( eps._2 ) )
 
             if ( exist.isDefined ) {
-                if ( exist.get.eps.length != eps.length ) {
-                    getPlayersAndSave( ap, eps )
+                if ( exist.get.eps.length != eps._1.length ) {
+                    getPlayersAndSave( apWithImage, eps._1, exist.get.id )
                 } else {
-                    println( s"${ap.title} exist. Skipping." )
+                    println( s"${ap.title} exist. Update ap." )
+                    saveOnlyAp(exist.get.copy(imageUrl = apWithImage.imageUrl))
                     Utils.randomTimeout()
                 }
             } else {
-                getPlayersAndSave( ap, eps )
+                getPlayersAndSave( apWithImage, eps._1, UUID.randomUUID() )
             }
         }
     }
 
-    private def getPlayersAndSave( ap: AnimePage, episodes: Array[ AnimeEpisodePage ] ): Unit = {
+    private def getPlayersAndSave( ap: AnimePage, episodes: Array[ AnimeEpisodePage ], id: UUID ): Unit = {
         val players = ArrayBuffer[ (AnimeEpisodePage, Array[ AnimeEpisodePlayer ]) ]()
 
         episodes.zipWithIndex.foreach { case (ep, idx) =>
@@ -72,13 +80,18 @@ class AnimeOdcinkiPl( ) {
             progressPercentage( episodes.length, episodes.length )
         }
 
-        val item = AnimeSorl( title = ap.title, url = ap.url, eps = players.map { i => AnimeEpisodeSorl( i._1.title, i._1.url, i._2.map { p => AnimeEpisodePlayerSorl( p.playerName, p.url ) } ) }.toArray )
+        val item = AnimeSorl( id = id, title = ap.title, url = ap.url, imageUrl = ap.imageUrl, eps = players.map { i => AnimeEpisodeSorl( i._1.title, i._1.url, i._2.map { p => AnimeEpisodePlayerSorl( p.playerName, p.url ) } ) }.toArray )
 
-        solrImpl.save( ap.id, ap.title, item )
+        solrImpl.save( id, ap.title, item )
+    }
+
+    private def saveOnlyAp(aps: AnimeSorl): Unit = {
+        solrImpl.save( aps.id, aps.title, aps, onlyAp = true )
     }
 
     def getList: Array[ AnimePage ] = {
         val ret = ArrayBuffer[ AnimePage ]()
+        println("Getting data")
 
         val tvSeries = browser.get( "https://anime-odcinki.pl/anime" )
         ret.addAll( ( tvSeries >> elementList( ".views-table tbody tr" ) ).map { item =>
@@ -96,17 +109,18 @@ class AnimeOdcinkiPl( ) {
         ret.toArray
     }
 
-    def getEpisodes( ap: AnimePage ): Array[ AnimeEpisodePage ] = {
-        var ret: Option[ Array[ AnimeEpisodePage ] ] = None
+    def getEpisodes( ap: AnimePage ): (Array[ AnimeEpisodePage ], String) = {
+        var ret: Option[ (Array[ AnimeEpisodePage ], String) ] = None
 
         while ( ret.isEmpty ) {
             try {
                 val animePage = browser.get( ap.url )
+                val imageStr = animePage >> element( "#anime-header div div div img" ) >> attr( "src" )
                 ret = Some( ( animePage >> elementList( ".view-lista-odcink-w div ul li" ) ).map { item =>
                     val urlItem = item >> element( "a" )
                     val url = urlItem >> attr( "href" )
                     AnimeEpisodePage( urlItem >> text, url )
-                }.toArray )
+                }.toArray, imageStr )
             } catch {
                 case e: Exception =>
                     e.printStackTrace()
