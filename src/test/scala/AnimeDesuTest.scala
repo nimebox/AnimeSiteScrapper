@@ -1,3 +1,4 @@
+import Models.{AnimePage, AnimePageEpisode}
 import org.scalatest.FunSuite
 
 class AnimeDesuTest extends FunSuite {
@@ -17,7 +18,7 @@ class AnimeDesuTest extends FunSuite {
     test( "GetEpisodeList" ) {
         val service = new AnimeDesuPL()
 
-        val testPage = service.AnimePage( "B-gata H-kei", "https://animedesu.pl/anime/b-gata-h-kei/" )
+        val testPage = AnimePage( "B-gata H-kei", "https://animedesu.pl/anime/b-gata-h-kei/" )
 
         val episodeList = service.getAnimeEpisodes( testPage )._1
 
@@ -31,7 +32,7 @@ class AnimeDesuTest extends FunSuite {
     test( "GetEpisodePlayersList" ) {
         val service = new AnimeDesuPL()
 
-        val testPage = service.AnimeEpisode( "B-gata H-kei Odcinek 1", "https://animedesu.pl/b-gata-h-kei-odcinek-1/" )
+        val testPage = AnimePageEpisode( "B-gata H-kei Odcinek 1", "https://animedesu.pl/b-gata-h-kei-odcinek-1/", Set.empty )
 
         val playersList = service.getEpisodePlayers( testPage )
 
@@ -39,7 +40,7 @@ class AnimeDesuTest extends FunSuite {
             println( s"${it.title} -> ${it.url}" )
         }
 
-        assert( playersList.length == 4 )
+        assert( playersList.toList.length == 4 )
         assert( playersList.head.url == "https://drive.google.com/file/d/1_CEbJZkoae8zzX9mJNcH2uOet9HuzwkF/preview" )
     }
 
