@@ -49,7 +49,7 @@ class AnimeDesuPL( ) {
 
     def getAnimeList: Array[ AnimePage ] = {
         val ret = ArrayBuffer[ AnimePage ]()
-        println( "Getting data" )
+        println( "[AD] Getting data" )
 
         val animeList = browser.get( "https://animedesu.pl/anime/list-mode/" )
 
@@ -61,7 +61,7 @@ class AnimeDesuPL( ) {
 
     def getAnimeEpisodes( animePage: AnimePage ): Option[ (Array[ AnimePageEpisode ], Option[ String ]) ] = {
         val ret = ArrayBuffer[ AnimePageEpisode ]()
-        println( s"Getting episodes for ${animePage.title}" )
+        println( s"[AD] Getting episodes for ${animePage.title}" )
 
         val episodeList = browser.get( animePage.url )
 
@@ -85,7 +85,7 @@ class AnimeDesuPL( ) {
 
     def getEpisodePlayers( animeEpisode: AnimePageEpisode ): Set[ AnimePagePlayer ] = {
         val ret = scala.collection.mutable.Set[ AnimePagePlayer ]()
-        println( s"Getting players for ${animeEpisode.title}" )
+        println( s"[AD] Getting players for ${animeEpisode.title}" )
 
         val playersList = browser.get( animeEpisode.url )
 

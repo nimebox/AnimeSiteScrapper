@@ -54,7 +54,7 @@ class AnimeOdcinkiPl( ) {
 
     def getAnimeList: Array[ AnimePage ] = {
         val ret = ArrayBuffer[ AnimePage ]()
-        println( "Getting data" )
+        println( "[AO] Getting data" )
 
         val tvSeries = browser.get( "https://anime-odcinki.pl/anime" )
         ret.addAll( ( tvSeries >> elementList( ".views-table tbody tr" ) ).map { item =>
@@ -88,7 +88,7 @@ class AnimeOdcinkiPl( ) {
             } catch {
                 case e: Exception =>
                     e.printStackTrace()
-                    println( s"Retry getting episodes of ${ap.title}" )
+                    println( s"[AO] Retry getting episodes of ${ap.title}" )
             }
             Utils.randomTimeout()
         }
@@ -114,12 +114,12 @@ class AnimeOdcinkiPl( ) {
             } catch {
                 case e: HttpStatusException =>
                     if ( e.getStatusCode == 404 ) {
-                        println( s"Page: ${aep.title} not exist. Skipping." )
+                        println( s"[AO] Page: ${aep.title} not exist. Skipping." )
                         canRetry = false
                     }
                 case e: Exception =>
                     e.printStackTrace()
-                    println( s"Retry getting players of ${aep.title}" )
+                    println( s"[AO] Retry getting players of ${aep.title}" )
             }
             Utils.randomTimeout()
         }

@@ -92,7 +92,7 @@ class SolrImpl( val serviceName: String ) {
         val dbAdd = for {
             _ <- solrService.addDocs( docs = docToUpdate )
             _ <- solrService.commit()
-        } yield print( s"${anime.title} added\n" )
+        } yield print( s"[$serviceName] ${anime.title} added\n" )
 
         Await.result( dbAdd, Duration.Inf )
     }
