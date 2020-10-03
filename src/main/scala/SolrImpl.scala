@@ -105,9 +105,32 @@ class SolrImpl( val serviceName: String ) {
             return
         }
 
-        //TODO!!!!!
+        val updatedEpisodes = episodes.map { ep =>
+            val oldEpisode = animeDB.get.episodes.find( _.url == ep.url )
 
+            val epId = if ( oldEpisode.isDefined ) {
+                oldEpisode.get.id
+            } else {
+                UUID.randomUUID()
+            }
 
+            val playerList = if ( oldEpisode.isDefined ) {
+                ep.players.map { player =>
+                    val oldPlayer = oldEpisode.get.players.find( _.url == player.url )
+                    if ( oldPlayer.isDefined ) {
+                        oldPlayer.get
+                    } else {
+                        AnimePlayer( UUID.randomUUID(), player.title, player.url )
+                    }
+                }
+            } else {
+                ep.players.map { player => AnimePlayer( UUID.randomUUID(), player.title, player.url ) }
+            }
+
+            AnimeEpisode( epId, ep.title, ep.url, playerList )
+        }
+
+        saveAnime(animeDB.get.copy(title = animePage.title, imageB64 = animePage.imageB64.fold( "" )( i => i ), episodes = updatedEpisodes ))
     }
 
     def getDataByUrl( url: String ): Option[ Anime ] = {
