@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema name="default-config" version="1.6">
     <uniqueKey>id</uniqueKey>
+    <uniqueKey>url</uniqueKey>
     <fieldType name="_nest_path_" class="solr.NestPathField" maxCharsForDocValues="-1" omitNorms="true" omitTermFreqAndPositions="true" stored="false"/>
     <fieldType name="binary" class="solr.BinaryField"/>
     <fieldType name="boolean" class="solr.BoolField" sortMissingLast="true"/>

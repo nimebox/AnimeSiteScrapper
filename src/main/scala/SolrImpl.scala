@@ -181,6 +181,6 @@ class SolrImpl( val serviceName: String ) {
             epTmp.addOne( AnimeEpisode( episodeId, title = episodeTitle, url = episodeUrl, players = playersSet.toSet ) )
         }
 
-        None
+        Some( Anime( animeId, title = animeTitle, url = animeUrl, imageB64 = animeImage, episodes = epTmp.toSet ) )
     }
 }
