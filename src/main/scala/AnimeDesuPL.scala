@@ -32,14 +32,18 @@ class AnimeDesuPL( ) {
     def updateAnimeDB( ): Unit = {
         getAnimeList.foreach { anime =>
             val episodesAndImage = getAnimeEpisodes( anime )
-            val animePageObj = anime.copy( imageB64 = episodesAndImage._2 )
-            Utils.randomTimeout()
-            val episodes = episodesAndImage._1.map { epb =>
-                val newObj = epb.copy( players = getEpisodePlayers( epb ) )
+            if ( episodesAndImage.isDefined ) {
+                val animePageObj = anime.copy( imageB64 = episodesAndImage.get._2 )
                 Utils.randomTimeout()
-                newObj
-            }.toSet
-            solrImpl.updateAnime( animePageObj, episodes )
+                val episodes = episodesAndImage.get._1.map { epb =>
+                    val newObj = epb.copy( players = getEpisodePlayers( epb ) )
+                    Utils.randomTimeout()
+                    newObj
+                }.toSet
+                solrImpl.updateAnime( animePageObj, episodes )
+            } else {
+                Utils.randomTimeout()
+            }
         }
     }
 
@@ -55,7 +59,7 @@ class AnimeDesuPL( ) {
         ret.toArray
     }
 
-    def getAnimeEpisodes( animePage: AnimePage ): (Array[ AnimePageEpisode ], Option[ String ]) = {
+    def getAnimeEpisodes( animePage: AnimePage ): Option[ (Array[ AnimePageEpisode ], Option[ String ]) ] = {
         val ret = ArrayBuffer[ AnimePageEpisode ]()
         println( s"Getting episodes for ${animePage.title}" )
 
@@ -65,10 +69,18 @@ class AnimeDesuPL( ) {
             AnimePageEpisode( el >> element( ".epl-title" ) >> text, el >> attr( "href" ), Set.empty )
         } )
 
+        val savedAnime = solrImpl.getDataByUrl( animePage.url )
+
+        if ( savedAnime.isDefined ) {
+            if(savedAnime.get.episodes.toList.length == ret.length) {
+                return None
+            }
+        }
+
         val imageUrl = episodeList >> element( ".thumbook .thumb img" ) >> attr( "src" )
         val image = downloadImage( imageUrl, animePage.url )
 
-        (ret.toArray, image)
+        Some( (ret.toArray, image) )
     }
 
     def getEpisodePlayers( animeEpisode: AnimePageEpisode ): Set[ AnimePagePlayer ] = {
