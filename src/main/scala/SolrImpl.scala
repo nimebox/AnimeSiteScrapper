@@ -183,4 +183,28 @@ class SolrImpl( val serviceName: String ) {
 
         Some( Anime( animeId, title = animeTitle, url = animeUrl, imageB64 = animeImage, episodes = epTmp.toSet ) )
     }
+
+    def getMinimalDataByUrl( url: String ): Option[ MinimalAnimeObj ] = {
+        val solrUrl = "https\\:" + url.replaceAll( "https:", "" )
+
+        val animeEntryResult = Await.result( solrService.query(
+            new SolrQuery( s"url:*$solrUrl AND type:${EntryType.ANIME.id}" ).setRows( 1 ).setFields("id", "title", "url")
+        ), Duration.Inf ).getResults
+
+        if ( animeEntryResult.isEmpty ) {
+            return None
+        }
+
+        val animeEntry = animeEntryResult.get( 0 )
+
+        val animeId = UUID.fromString( animeEntry.getFieldValue( "id" ).toString )
+        val animeTitle = animeEntry.getFieldValue( "title" ).toString
+        val animeUrl = animeEntry.getFieldValue( "url" ).toString
+
+        val animeEpisodesResult = Await.result( solrService.query(
+            new SolrQuery( s"animeId:${animeId.toString} AND type:${EntryType.EPISODE.id}" )
+        ), Duration.Inf ).getResults
+
+        Some( MinimalAnimeObj( animeId, title = animeTitle, url = animeUrl, episodesCount = animeEpisodesResult.size()) )
+    }
 }
