@@ -10,9 +10,14 @@ object Main {
 
         val r1 = Future {
             val service = new AnimeOdcinkiPl()
-            service.downloadDBAndSave()
+            service.updateAnimeDB()
         }
 
-        Await.ready(Future.sequence(List(r1)), Duration.Inf)
+        val r2 = Future {
+            val service = new AnimeDesuPL()
+            service.updateAnimeDB()
+        }
+
+        Await.ready(Future.sequence(List(r1, r2)), Duration.Inf)
     }
 }
