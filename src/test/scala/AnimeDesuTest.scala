@@ -15,7 +15,7 @@ class AnimeDesuTest extends FunSuite {
         assert( animeList.length > 0 )
     }
 
-    test( "GetEpisodeList" ) {
+/*    test( "GetEpisodeList" ) {
         val service = new AnimeDesuPL()
 
         val testPage = AnimePage( "B-gata H-kei", "https://animedesu.pl/anime/b-gata-h-kei/" )
@@ -27,7 +27,7 @@ class AnimeDesuTest extends FunSuite {
         }
 
         assert( episodeList.length == 12 )
-    }
+    }*/
 
     test( "GetEpisodePlayersList" ) {
         val service = new AnimeDesuPL()
