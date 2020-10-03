@@ -1,6 +1,5 @@
 import java.nio.charset.StandardCharsets
 import java.util.Base64
-import java.util.concurrent.Executors
 
 import Models.{AnimePage, AnimePageEpisode, AnimePagePlayer}
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
@@ -12,12 +11,8 @@ import org.jsoup.Connection
 import sttp.client.{HttpURLConnectionBackend, Identity, NothingT, SttpBackend}
 
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
 
 class AnimeDesuPL( ) {
-
-    implicit val context: ExecutionContextExecutorService =
-        ExecutionContext.fromExecutorService( Executors.newSingleThreadExecutor() )
 
     private val browser = new JsoupBrowser( userAgent = Const.ua ) {
         override def requestSettings( conn: Connection ): Connection = conn.timeout( 60000 )

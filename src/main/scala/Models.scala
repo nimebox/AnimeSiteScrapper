@@ -13,6 +13,6 @@ object Models {
 
     case class AnimeEpisode( id: UUID, title: String, url: String, players: Set[ AnimePlayer ] )
 
-    case class Anime( id: UUID, title: String, url: String, imageB64: String, episodes: Set[ AnimeEpisode ], updated: ZonedDateTime )
+    case class Anime( id: UUID, title: String, url: String, imageB64: String, episodes: Set[ AnimeEpisode ] )
 
 }

@@ -1,6 +1,5 @@
 
 import java.util.Base64
-import java.util.concurrent.Executors
 
 import Models.{AnimePage, AnimePageEpisode, AnimePagePlayer}
 import com.google.gson.GsonBuilder
@@ -14,12 +13,8 @@ import sttp.client._
 import sttp.client.{HttpURLConnectionBackend, Identity, NothingT, SttpBackend}
 
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
 
 class AnimeOdcinkiPl( ) {
-    implicit val context: ExecutionContextExecutorService =
-        ExecutionContext.fromExecutorService( Executors.newSingleThreadExecutor() )
-
     case class DataHash( a: String, b: String, v: String )
 
     private val key = "s05z9Gpd=syG^7{"

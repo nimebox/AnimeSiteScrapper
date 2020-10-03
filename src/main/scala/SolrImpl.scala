@@ -43,7 +43,7 @@ class SolrImpl( val serviceName: String ) {
                             title = player.title,
                             url = player.url )
                     } )
-            }, updated = ZonedDateTime.now() )
+            })
 
         saveAnime( anime )
     }
@@ -150,14 +150,13 @@ class SolrImpl( val serviceName: String ) {
         val animeTitle = animeEntry.getFieldValue( "title" ).toString
         val animeUrl = animeEntry.getFieldValue( "url" ).toString
         val animeImage = animeEntry.getFieldValue( "imageB64" ).toString
-        val animeUpdated = ZonedDateTime.parse( animeEntry.getFieldValue( "updated" ).toString, DateTimeFormatter.ISO_INSTANT )
 
         val animeEpisodesResult = Await.result( solrService.query(
             new SolrQuery( s"animeId:${animeId.toString} AND type:${EntryType.EPISODE.id}" )
         ), Duration.Inf ).getResults
 
         if ( animeEpisodesResult.isEmpty ) {
-            return Some( Anime( animeId, title = animeTitle, url = animeUrl, imageB64 = animeImage, episodes = Set.empty, updated = animeUpdated ) )
+            return Some( Anime( animeId, title = animeTitle, url = animeUrl, imageB64 = animeImage, episodes = Set.empty ) )
         }
 
         val epTmp: ArrayBuffer[ AnimeEpisode ] = ArrayBuffer.empty
@@ -170,15 +169,11 @@ class SolrImpl( val serviceName: String ) {
             val playersSet: scala.collection.mutable.Set[ AnimePlayer ] = scala.collection.mutable.Set.empty
 
             Await.result( solrService.query(
-                new SolrQuery( s"episodeId:(${
-                    epTmp.flatten {
-                        _.id.toString
-                    }.mkString( " " )
-                }) AND type:${EntryType.PLAYER.id}" )
+                new SolrQuery( s"episodeId:$episodeId AND type:${EntryType.PLAYER.id}" )
             ), Duration.Inf ).getResults.forEach { plr =>
-                val playerId = UUID.fromString( epf.getFieldValue( "id" ).toString )
-                val playerTitle = epf.getFieldValue( "title" ).toString
-                val playerUrl = epf.getFieldValue( "url" ).toString
+                val playerId = UUID.fromString( plr.getFieldValue( "id" ).toString )
+                val playerTitle = plr.getFieldValue( "title" ).toString
+                val playerUrl = plr.getFieldValue( "url" ).toString
 
                 playersSet.addOne( AnimePlayer( playerId, playerTitle, playerUrl ) )
             }
