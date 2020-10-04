@@ -1,0 +1,13 @@
+{
+    "httpAddr": "0.0.0.0:3010",
+    "services": [{
+        "id": "ao",
+        "name": "Anime-Odcinki.pl"
+    },
+    {
+        "id": "ad",
+        "name": "animedesu.pl"
+    }],
+    "solrAddr": "http://localhost:8983/solr",
+    "authKey": "00000000-0000-0000-0000-000000000000"
+}
