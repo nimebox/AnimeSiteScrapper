@@ -54,33 +54,43 @@ class AnimeDesuPL( ) {
         ret.toArray
     }
 
-    def getAnimeEpisodes( animePage: AnimePage ): Option[ (Array[ AnimePageEpisode ], Option[ String ]) ] = {
-        val ret = ArrayBuffer[ AnimePageEpisode ]()
-        println( s"[AD] Getting episodes for ${animePage.title}" )
+    def getAnimeEpisodes( ap: AnimePage ): Option[ (Array[ AnimePageEpisode ], Option[ String ]) ] = {
+        var canRetry = true
+        var ret: Option[ (Array[ AnimePageEpisode ], Option[ String ]) ] = None
+        println( s"[AD] Getting episodes for ${ap.title}" )
 
-        val episodeList = browser.get( animePage.url )
+        while ( canRetry ) {
+            try {
+                val animePage = browser.get( ap.url )
+                val image = downloadImage( animePage >> element( ".thumbook .thumb img" ) >> attr( "src" ), ap.url )
 
-        ret.addAll( ( episodeList >> elementList( ".epcheck .eplister ul li a" ) ).map { el =>
-            AnimePageEpisode( el >> element( ".epl-title" ) >> text, el >> attr( "href" ), Set.empty )
-        } )
+                ret = Some( (( animePage >> elementList( ".epcheck .eplister ul li a" ) ).map { item =>
+                    AnimePageEpisode( item >> element( ".epl-title" ) >> text, item >> attr( "href" ), Set.empty )
+                }.toArray, image) )
 
-        val savedAnime = solrImpl.getDataByUrl( animePage.url )
+                val savedAnime = solrImpl.getMinimalDataByUrl( ap.url )
 
-        if ( savedAnime.isDefined ) {
-            if(savedAnime.get.episodes.toList.length == ret.length) {
-                return None
+                if ( savedAnime.isDefined ) {
+                    ret.get._1.length
+                    if ( savedAnime.get.episodesCount <= ret.get._1.length ) {
+                        return None
+                    }
+                }
+                canRetry = false
+            } catch {
+                case e: Exception =>
+                    e.printStackTrace()
+                    println( s"[AD] Retry getting episodes of ${ap.title}" )
             }
+            Utils.randomTimeout()
         }
 
-        val imageUrl = episodeList >> element( ".thumbook .thumb img" ) >> attr( "src" )
-        val image = downloadImage( imageUrl, animePage.url )
-
-        Some( (ret.toArray, image) )
+        ret
     }
 
     def getEpisodePlayers( animeEpisode: AnimePageEpisode ): Set[ AnimePagePlayer ] = {
         val ret = scala.collection.mutable.Set[ AnimePagePlayer ]()
-        println( s"[AD] Getting players for ${animeEpisode.title}" )
+        //println( s"[AD] Getting players for ${animeEpisode.title}" )
 
         val playersList = browser.get( animeEpisode.url )
 
@@ -89,11 +99,18 @@ class AnimeDesuPL( ) {
             val hash = el >> attr( "value" )
 
             if ( !hash.isBlank ) {
-                val decodedIframeString = new String( Base64.getDecoder.decode( hash ), StandardCharsets.UTF_8 )
+                try {
+                    val decodedIframeString = new String( Base64.getDecoder.decode( hash ), StandardCharsets.UTF_8 )
 
-                val url = browser.parseString( decodedIframeString ).body >> element( "iframe" ) >> attr( "src" )
+                    val url = browser.parseString( decodedIframeString ).body >> element( "iframe" ) >> attr( "src" )
 
-                ret.addOne( AnimePagePlayer( title, url ) )
+                    ret.addOne( AnimePagePlayer( title, url ) )
+                } catch {
+                    case e: Exception =>
+                        e.printStackTrace()
+
+                }
+
             }
         }
 
