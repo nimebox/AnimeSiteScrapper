@@ -69,6 +69,7 @@ class AnimeOdcinkiPl( ) {
     def getAnimeEpisodes( ap: AnimePage ): Option[ (Array[ AnimePageEpisode ], Option[ String ]) ] = {
         var canRetry = true
         var ret: Option[ (Array[ AnimePageEpisode ], Option[ String ]) ] = None
+        println( s"[AO] Getting episodes for ${ap.title}" )
 
         while ( canRetry ) {
             try {
@@ -79,7 +80,17 @@ class AnimeOdcinkiPl( ) {
                     val url = urlItem >> attr( "href" )
                     AnimePageEpisode( urlItem >> text, url, Set.empty )
                 }.toArray, image )
+
+                val savedAnime = solrImpl.getMinimalDataByUrl( ap.url )
+
+                if ( savedAnime.isDefined ) {
+                    if(savedAnime.get.episodesCount <= ret.get._1.length) {
+                        return None
+                    }
+                }
+
                 canRetry = false
+
             } catch {
                 case e: Exception =>
                     e.printStackTrace()
