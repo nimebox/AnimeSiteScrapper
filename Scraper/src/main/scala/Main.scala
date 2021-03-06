@@ -8,16 +8,12 @@ object Main {
         implicit val context: ExecutionContextExecutorService =
             ExecutionContext.fromExecutorService( Executors.newFixedThreadPool( 6 ) )
 
-        val r1 = Future {
-            val service = new AnimeOdcinkiPl()
+        val r3 = Future {
+            val service = new AnimeZonePL()
             service.updateAnimeDB()
         }
 
-        val r2 = Future {
-            val service = new AnimeDesuPL()
-            service.updateAnimeDB()
-        }
 
-        Await.ready(Future.sequence(List(r1, r2)), Duration.Inf)
+        Await.ready(Future.sequence(List(r3)), Duration.Inf)
     }
 }
