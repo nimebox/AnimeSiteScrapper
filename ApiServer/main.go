@@ -71,20 +71,46 @@ type apiConfig struct {
 var config apiConfig
 
 func loadConfig() error {
-	configFile, err := os.Open("config.json")
-	if err != nil {
-		return err
-	}
-	defer configFile.Close()
+	if os.Getenv("IN_DOCKER") == "1" {
+		println("I'm in Docker :)")
 
-	byteValue, err := ioutil.ReadAll(configFile)
-	if err != nil {
-		return err
-	}
+		ao := serviceElementJSON{
+			ID:   "ao",
+			Name: "Anime-Odcinki.pl",
+		}
 
-	err = json.Unmarshal(byteValue, &config)
-	if err != nil {
-		return err
+		ad := serviceElementJSON{
+			ID:   "ad",
+			Name: "animedesu.pl",
+		}
+
+		services := make([]serviceElementJSON, 0)
+		services = append(services, ao)
+		services = append(services, ad)
+
+		config = apiConfig{
+			HTTPAddr: "0.0.0.0:3010",
+			SolrAddr: os.Getenv("SOLR_ADDR"),
+			AuthKey:  os.Getenv("AUTH_KEY"),
+			Services: services,
+		}
+
+	} else {
+		configFile, err := os.Open("config.json")
+		if err != nil {
+			return err
+		}
+		defer configFile.Close()
+
+		byteValue, err := ioutil.ReadAll(configFile)
+		if err != nil {
+			return err
+		}
+
+		err = json.Unmarshal(byteValue, &config)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
