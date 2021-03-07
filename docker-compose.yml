@@ -1,0 +1,28 @@
+version: '3.9'
+services:
+  api:
+    image: 'adb_api:v1.0'
+    environment:
+      SOLR_ADDR: 'http://db-solr:8983/solr'
+      AUTH_KEY: '00000000-0000-0000-0000-000000000000'
+    ports:
+      - '3010:3010'
+    depends_on:
+      - db-solr
+    networks:
+      - db-net
+      - app-net
+  db-solr:
+    image: 'solr:8.7.0-slim'
+    volumes:
+      - './Volume3/:/var/solr'
+    networks:
+      - db-net
+    entrypoint:
+      - bash
+      - '-c'
+      - precreate-core ao; precreate-core ad; exec solr -f
+networks:
+  db-net: 
+    internal: true 
+  app-net:
